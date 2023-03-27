@@ -1,5 +1,6 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import axios from 'axios';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { StyledAppContainer } from './App.styled';
@@ -10,71 +11,69 @@ import { SearchBar } from './Searchbar/Searchbar';
 import { Loader } from './Loader/Loader';
 import { ToastNotify } from './ToastNotify/ToastNotify';
 
-export class App extends Component {
-  state = {
-    search: '',
-    page: 1,
-    images: [],
-    showBtnLoad: false,
-    isLoading: false,
-    isEmpty: false,
-  };
+export const App = () => {
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [images, setImages] = useState([]);
+  const [showBtnLoad, setShowBtnLoad] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isEmpty, setIsEmpty] = useState(false);
 
-  componentDidUpdate = (prevProps, prevState) => {
-    const { page, search } = this.state;
+  useEffect(() => {
+    if (search) {
+      setIsLoading(true);
+      fetchImages(search, page);
+    }
+  }, [search, page]);
 
-    if (prevState.search !== search || prevState.page !== page) {
-      this.setState({ isLoading: true });
-      this.fetchImages(search, page);
+  async function fetchImages(searchWord, page) {
+    try {
+      const response = await axios.get('https://pixabay.com/api/', {
+        params: {
+          q: searchWord,
+          page,
+          key: '32598481-51c6e368c4b2f2440a6e9b5e3',
+          image_type: 'photo',
+          orientation: 'horizontal',
+          per_page: 12,
+        },
+      });
+      const { hits, totalHits } = response.data;
+      if (!hits.length) {
+        setIsEmpty(true);
+        toast.info('Nothing not found');
+        return;
+      }
+      setImages(prev => [...prev, ...hits]);
+      setShowBtnLoad(page < Math.ceil(totalHits / 12));
+    } catch (e) {
+      toast.error('Somthing wrong. Please, try again');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const onSearch = searchValue => {
+    if (searchValue !== search || page !== 1) {
+      setSearch(searchValue);
+      setPage(1);
+      setImages([]);
+      setIsEmpty(false);
+      setShowBtnLoad(false);
     }
   };
 
-  fetchImages(searchWord, page) {
-    fetch(
-      `https://pixabay.com/api/?q=${searchWord}&page=${page}&key=32598481-51c6e368c4b2f2440a6e9b5e3&image_type=photo&orientation=horizontal&per_page=12`
-    )
-      .then(response => response.json())
-      .then(data => {
-        if (!data.hits.length) {
-          this.setState({ isEmpty: true });
-          toast.info('Nothing not found');
-          return;
-        }
-        this.setState(prevState => ({
-          images: [...prevState.images, ...data.hits],
-          showBtnLoad: page < Math.ceil(data.totalHits / 12),
-        }));
-      })
-      .catch(() => toast.error('Somthing wrong. Please, try again'))
-      .finally(this.setState({ isLoading: false }));
-  }
-
-  onSearch = searchValue => {
-    if (searchValue !== this.state.search || this.state.page !== 1)
-      this.setState({
-        search: searchValue,
-        page: 1,
-        images: [],
-        showBtnLoad: false,
-        isEmpty: false,
-      });
+  const loadMore = () => {
+    setPage(prev => prev + 1);
   };
 
-  loadMore = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
-  };
-
-  render() {
-    const { images, isLoading, showBtnLoad, isEmpty } = this.state;
-
-    return (
-      <StyledAppContainer>
-        <SearchBar onSubmit={this.onSearch} />
-        {isEmpty && <ToastNotify />}
-        {isLoading && <Loader />}
-        <ImageGallery images={images} />
-        {showBtnLoad && <Button loadMore={this.loadMore} />}
-      </StyledAppContainer>
-    );
-  }
-}
+  return (
+    <StyledAppContainer>
+      <SearchBar onSubmit={onSearch} />
+      {isEmpty && <ToastNotify />}
+      {isLoading && <Loader />}
+      <ImageGallery images={images} />
+      {showBtnLoad && <Button loadMore={loadMore} />}
+    </StyledAppContainer>
+  );
+};

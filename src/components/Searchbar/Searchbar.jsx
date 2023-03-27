@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState } from 'react';
 
 import {
   StyledSearchBar,
@@ -8,43 +8,41 @@ import {
   StyledInput,
 } from './Searchbar.styled';
 
-export class SearchBar extends Component {
-  state = {
-    search: '',
-  };
+export const SearchBar = ({ onSubmit }) => {
+  const [search, setSearch] = useState('');
 
-  onChange = e => {
+  const onChange = e => {
     const searchValue = e.currentTarget.value;
-    this.setState({ search: searchValue });
+    setSearch(searchValue);
   };
 
-  onSubmit = e => {
+  const hendlerSubmit = e => {
     e.preventDefault();
-    const searchWord = this.state.search.trim();
+
+    const searchWord = search.trim();
     if (!searchWord) return;
-    this.props.onSubmit(searchWord);
-    this.setState({ search: '' });
+
+    onSubmit(searchWord);
+    setSearch('');
   };
 
-  render() {
-    return (
-      <StyledSearchBar>
-        <StyledSearchForm onSubmit={this.onSubmit}>
-          <StyledSubmitButton type="submit">
-            <StyledButtonLabel>Search</StyledButtonLabel>
-          </StyledSubmitButton>
+  return (
+    <StyledSearchBar>
+      <StyledSearchForm onSubmit={hendlerSubmit}>
+        <StyledSubmitButton type="submit">
+          <StyledButtonLabel>Search</StyledButtonLabel>
+        </StyledSubmitButton>
 
-          <StyledInput
-            name="search"
-            type="text"
-            autoComplete="off"
-            autoFocus
-            placeholder="Search images and photos"
-            value={this.state.search}
-            onChange={this.onChange}
-          />
-        </StyledSearchForm>
-      </StyledSearchBar>
-    );
-  }
-}
+        <StyledInput
+          name="search"
+          type="text"
+          autoComplete="off"
+          autoFocus
+          placeholder="Search images and photos"
+          value={search}
+          onChange={onChange}
+        />
+      </StyledSearchForm>
+    </StyledSearchBar>
+  );
+};
